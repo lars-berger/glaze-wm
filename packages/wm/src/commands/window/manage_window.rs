@@ -1,7 +1,7 @@
 use anyhow::Context;
 use tracing::info;
 use wm_common::{
-  try_warn, LengthValue, RectDelta, WindowRuleEvent, WindowState, WmEvent,
+  try_warn, RectDelta, WindowRuleEvent, WindowState, WmEvent,
 };
 use wm_platform::NativeWindow;
 
@@ -79,16 +79,9 @@ fn create_window(
     .displayed_workspace()
     .context("No nearest workspace.")?;
 
-  let is_single_window =
-    nearest_workspace.tiling_children().nth(1).is_none();
-
   let gaps_config = config.value.gaps.clone();
-  let window_state = window_state_to_create(
-    &native_window,
-    &nearest_monitor,
-    config,
-    is_single_window,
-  )?;
+  let window_state =
+    window_state_to_create(&native_window, &nearest_monitor, config)?;
 
   // Attach the new window as the first child of the target parent (if
   // provided), otherwise, add as a sibling of the focused container.
@@ -130,12 +123,7 @@ fn create_window(
 
   // Window has no border delta unless it's later changed via the
   // `adjust_borders` command.
-  let border_delta = RectDelta::new(
-    LengthValue::from_px(0),
-    LengthValue::from_px(0),
-    LengthValue::from_px(0),
-    LengthValue::from_px(0),
-  );
+  let border_delta = RectDelta::zero();
 
   let window_container: WindowContainer = match window_state {
     WindowState::Tiling => TilingWindow::new(
@@ -189,11 +177,17 @@ fn window_state_to_create(
   native_window: &NativeWindow,
   nearest_monitor: &Monitor,
   config: &UserConfig,
-  is_single_window: bool,
 ) -> anyhow::Result<WindowState> {
   if native_window.is_minimized()? {
     return Ok(WindowState::Minimized);
   }
+
+  let is_single_window =
+    if let Some(workspace) = nearest_monitor.displayed_workspace() {
+      workspace.tiling_children().nth(1).is_none()
+    } else {
+      false
+    };
 
   let monitor_rect = if config.has_outer_gaps(is_single_window) {
     nearest_monitor.native().working_rect()?.clone()

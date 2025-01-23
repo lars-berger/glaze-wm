@@ -53,6 +53,13 @@ gaps:
     bottom: '20px'
     left: '20px'
 
+  smart_outer_gap:
+    # Small Gap for Zebar
+    top: "45px"
+    right: "0px"
+    bottom: "0px"
+    left: "0px"
+
 window_effects:
   # Visual effects to apply to the focused window.
   focused_window:

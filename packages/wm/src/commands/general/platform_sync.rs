@@ -359,6 +359,11 @@ fn apply_window_effects(
   config: &UserConfig,
 ) {
   let window_effects = &config.value.window_effects;
+  let is_single_window = if let Some(workspace) = window.workspace() {
+    workspace.tiling_children().nth(1).is_none()
+  } else {
+    false
+  };
 
   let effect_config = if is_focused {
     &window_effects.focused_window
@@ -367,10 +372,18 @@ fn apply_window_effects(
   };
 
   // Skip if both focused + non-focused window effects are disabled.
-  if window_effects.focused_window.border.enabled
-    || window_effects.other_windows.border.enabled
+  if window_effects
+    .focused_window
+    .border
+    .get_smart(is_single_window)
+    .enabled
+    || window_effects
+      .other_windows
+      .border
+      .get_smart(is_single_window)
+      .enabled
   {
-    apply_border_effect(window, effect_config);
+    apply_border_effect(window, effect_config, is_single_window);
   };
 
   if window_effects.focused_window.hide_title_bar.enabled
@@ -395,9 +408,11 @@ fn apply_window_effects(
 fn apply_border_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
+  is_single_window: bool,
 ) {
-  let border_color = if effect_config.border.enabled {
-    Some(&effect_config.border.color)
+  let border = effect_config.border.get_smart(is_single_window);
+  let border_color = if border.enabled {
+    Some(&border.color)
   } else {
     None
   };

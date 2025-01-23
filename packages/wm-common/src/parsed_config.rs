@@ -46,7 +46,22 @@ pub struct GapsConfig {
 
   /// Gap between window and the screen edge if there is only one window
   /// in the workspace
-  pub single_screen_gap: RectDelta,
+  pub smart_outer_gap: Option<RectDelta>,
+}
+
+impl GapsConfig {
+  #[must_use]
+  #[allow(clippy::missing_panics_doc)]
+  pub fn get_outer_gap(&self, single_window: bool) -> &RectDelta {
+    // TODO: Replace this with single_window && let Some() when it becomes
+    // stable and remove the clippy allow
+    if single_window && self.smart_outer_gap.is_some() {
+      // Saftey: Just called is_some()
+      self.smart_outer_gap.as_ref().unwrap()
+    } else {
+      &self.outer_gap
+    }
+  }
 }
 
 impl Default for GapsConfig {
@@ -54,18 +69,8 @@ impl Default for GapsConfig {
     GapsConfig {
       scale_with_dpi: true,
       inner_gap: LengthValue::from_px(0),
-      outer_gap: RectDelta::new(
-        LengthValue::from_px(0),
-        LengthValue::from_px(0),
-        LengthValue::from_px(0),
-        LengthValue::from_px(0),
-      ),
-      single_screen_gap: RectDelta::new(
-        LengthValue::from_px(0),
-        LengthValue::from_px(0),
-        LengthValue::from_px(0),
-        LengthValue::from_px(0),
-      ),
+      outer_gap: RectDelta::zero(),
+      smart_outer_gap: None,
     }
   }
 }
@@ -230,7 +235,7 @@ pub struct WindowEffectsConfig {
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct WindowEffectConfig {
   /// Config for optionally applying a colored border.
-  pub border: BorderEffectConfig,
+  pub border: SmartBorderEffectConfig,
 
   /// Config for optionally hiding the title bar.
   pub hide_title_bar: HideTitleBarEffectConfig,
@@ -244,6 +249,55 @@ pub struct WindowEffectConfig {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
+pub struct SmartBorderEffectConfig {
+  /// Whether to enable the effect.
+  pub enabled: bool,
+
+  /// Color of the window border.
+  pub color: Color,
+
+  // Border Effects if there is only one window
+  pub smart: Option<BorderEffectConfig>,
+}
+
+impl SmartBorderEffectConfig {
+  #[must_use]
+  #[allow(clippy::missing_panics_doc)]
+  /// Gets the border effect config based on if the window is the only
+  /// tiling child
+  ///
+  /// # Arguments
+  /// * `single_window`: Whether the window is the only tiling child
+  pub fn get_smart(&self, single_window: bool) -> BorderEffectConfig {
+    if single_window && self.smart.is_some() {
+      // Saftey: Just called is_some()
+      self.smart.as_ref().unwrap().clone()
+    } else {
+      BorderEffectConfig {
+        enabled: self.enabled,
+        color: self.color.clone(),
+      }
+    }
+  }
+}
+
+impl Default for SmartBorderEffectConfig {
+  fn default() -> Self {
+    SmartBorderEffectConfig {
+      enabled: false,
+      color: Color {
+        r: 140,
+        g: 190,
+        b: 255,
+        a: 255,
+      },
+      smart: None,
+    }
+  }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all(serialize = "camelCase"))]
 pub struct BorderEffectConfig {
   /// Whether to enable the effect.
   pub enabled: bool,

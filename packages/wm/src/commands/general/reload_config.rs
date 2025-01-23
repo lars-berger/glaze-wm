@@ -158,19 +158,42 @@ fn update_window_effects(
   let window_effects = &config.value.window_effects;
   let old_window_effects = &old_config.window_effects;
 
+  let is_single_window =
+    if let Some(workspace) = focused_container.workspace() {
+      workspace.tiling_children().nth(1).is_none()
+    } else {
+      false
+    };
+
   // Window border effects are left at system defaults if disabled in the
   // config. However, when transitioning from colored borders to having
   // them disabled, it's best to reset to the system defaults.
-  if !window_effects.focused_window.border.enabled
-    && old_window_effects.focused_window.border.enabled
+  if !window_effects
+    .focused_window
+    .border
+    .get_smart(is_single_window)
+    .enabled
+    && old_window_effects
+      .focused_window
+      .border
+      .get_smart(is_single_window)
+      .enabled
   {
     if let Ok(window) = focused_container.as_window_container() {
       _ = window.native().set_border_color(None);
     }
   }
 
-  if !window_effects.other_windows.border.enabled
-    && old_window_effects.other_windows.border.enabled
+  if !window_effects
+    .other_windows
+    .border
+    .get_smart(is_single_window)
+    .enabled
+    && old_window_effects
+      .other_windows
+      .border
+      .get_smart(is_single_window)
+      .enabled
   {
     let unfocused_windows = state
       .windows()

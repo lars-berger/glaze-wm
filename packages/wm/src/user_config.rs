@@ -335,11 +335,7 @@ impl UserConfig {
   }
 
   pub fn has_outer_gaps(&self, is_single_window: bool) -> bool {
-    let outer_gap = if is_single_window {
-      &self.value.gaps.single_screen_gap
-    } else {
-      &self.value.gaps.outer_gap
-    };
+    let outer_gap = &self.value.gaps.get_outer_gap(is_single_window);
 
     // Allow for 1px/1% of leeway.
     outer_gap.bottom.amount > 1.0

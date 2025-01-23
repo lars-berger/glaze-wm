@@ -32,4 +32,14 @@ impl RectDelta {
       bottom,
     }
   }
+
+  #[must_use]
+  pub fn zero() -> Self {
+    Self {
+      left: LengthValue::from_px(0),
+      right: LengthValue::from_px(0),
+      top: LengthValue::from_px(0),
+      bottom: LengthValue::from_px(0),
+    }
+  }
 }
