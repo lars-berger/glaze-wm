@@ -241,7 +241,7 @@ pub struct WindowEffectConfig {
   pub hide_title_bar: HideTitleBarEffectConfig,
 
   /// Config for optionally changing the corner style.
-  pub corner_style: CornerEffectConfig,
+  pub corner_style: SmartCornerEffectConfig,
 
   /// Config for optionally applying transparency.
   pub transparency: TransparencyEffectConfig,
@@ -325,6 +325,40 @@ impl Default for BorderEffectConfig {
 pub struct HideTitleBarEffectConfig {
   /// Whether to enable the effect.
   pub enabled: bool,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct SmartCornerEffectConfig {
+  /// Whether to enable the effect.
+  pub enabled: bool,
+
+  /// Style of the window corners.
+  pub style: CornerStyle,
+
+  // Corner Effects if there is only one window in a workspace
+  pub smart: Option<CornerEffectConfig>,
+}
+
+impl SmartCornerEffectConfig {
+  #[must_use]
+  #[allow(clippy::missing_panics_doc)]
+  /// Gets the corners effect config based on if the window is the only
+  /// tiling child
+  ///
+  /// # Arguments
+  /// * `single_window`: Whether the window is the only tiling child
+  pub fn get_smart(&self, single_window: bool) -> CornerEffectConfig {
+    if single_window && self.smart.is_some() {
+      // Saftey: Just called is_some()
+      self.smart.as_ref().unwrap().clone()
+    } else {
+      CornerEffectConfig {
+        enabled: self.enabled,
+        style: self.style.clone(),
+      }
+    }
+  }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]

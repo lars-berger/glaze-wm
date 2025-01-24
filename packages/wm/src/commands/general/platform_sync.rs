@@ -392,8 +392,16 @@ fn apply_window_effects(
     apply_hide_title_bar_effect(window, effect_config);
   }
 
-  if window_effects.focused_window.corner_style.enabled
-    || window_effects.other_windows.corner_style.enabled
+  if window_effects
+    .focused_window
+    .corner_style
+    .get_smart(is_single_window)
+    .enabled
+    || window_effects
+      .other_windows
+      .corner_style
+      .get_smart(is_single_window)
+      .enabled
   {
     apply_corner_effect(window, effect_config);
   }
@@ -443,8 +451,17 @@ fn apply_corner_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
 ) {
-  let corner_style = if effect_config.corner_style.enabled {
-    &effect_config.corner_style.style
+  let is_single_window = if let Some(workspace) = window.workspace() {
+    workspace.tiling_children().nth(1).is_none()
+  } else {
+    false
+  };
+
+  let smart_corner_style =
+    effect_config.corner_style.get_smart(is_single_window);
+
+  let corner_style = if smart_corner_style.enabled {
+    &smart_corner_style.style
   } else {
     &CornerStyle::Default
   };
