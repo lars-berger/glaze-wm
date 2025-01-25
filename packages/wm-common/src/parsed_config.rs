@@ -244,7 +244,7 @@ pub struct WindowEffectConfig {
   pub corner_style: SmartCornerEffectConfig,
 
   /// Config for optionally applying transparency.
-  pub transparency: TransparencyEffectConfig,
+  pub transparency: SmartTransparencyEffectConfig,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -380,6 +380,36 @@ pub enum CornerStyle {
   Square,
   Rounded,
   SmallRounded,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct SmartTransparencyEffectConfig {
+  #[serde(flatten)]
+  /// Default transparency effects
+  pub normal: TransparencyEffectConfig,
+
+  /// Overrides for if there is only one tiling window in a workspace.
+  pub smart: Option<TransparencyEffectConfig>,
+}
+
+impl SmartTransparencyEffectConfig {
+  #[must_use]
+  /// Gets the transparency effect config based on if the window is the
+  /// only tiling child
+  ///
+  /// # Arguments
+  /// * `single_window`: Whether the window is the only tiling child
+  pub fn get_smart(
+    &self,
+    single_window: bool,
+  ) -> &TransparencyEffectConfig {
+    if let (Some(smart), true) = (self.smart.as_ref(), single_window) {
+      smart
+    } else {
+      &self.normal
+    }
+  }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]

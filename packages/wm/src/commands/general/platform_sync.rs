@@ -432,8 +432,16 @@ fn apply_window_effects(
     apply_corner_effect(window, effect_config);
   }
 
-  if window_effects.focused_window.transparency.enabled
-    || window_effects.other_windows.transparency.enabled
+  if window_effects
+    .focused_window
+    .transparency
+    .get_smart(is_single_window)
+    .enabled
+    || window_effects
+      .other_windows
+      .transparency
+      .get_smart(is_single_window)
+      .enabled
   {
     apply_transparency_effect(window, effect_config);
   }
@@ -508,8 +516,16 @@ fn apply_transparency_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
 ) {
-  let transparency = if effect_config.transparency.enabled {
-    &effect_config.transparency.opacity
+  let is_single_window = if let Some(workspace) = window.workspace() {
+    workspace.tiling_children().nth(1).is_none()
+  } else {
+    false
+  };
+
+  let effect = effect_config.transparency.get_smart(is_single_window);
+
+  let transparency = if effect.enabled {
+    &effect.opacity
   } else {
     // Reset the transparency to default.
     &OpacityValue::from_alpha(u8::MAX)
