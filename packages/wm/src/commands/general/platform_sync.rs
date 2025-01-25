@@ -404,8 +404,16 @@ fn apply_window_effects(
     apply_border_effect(window, effect_config, is_single_window);
   };
 
-  if window_effects.focused_window.hide_title_bar.enabled
-    || window_effects.other_windows.hide_title_bar.enabled
+  if window_effects
+    .focused_window
+    .hide_title_bar
+    .get_smart(is_single_window)
+    .enabled
+    || window_effects
+      .other_windows
+      .hide_title_bar
+      .get_smart(is_single_window)
+      .enabled
   {
     apply_hide_title_bar_effect(window, effect_config);
   }
@@ -460,9 +468,18 @@ fn apply_hide_title_bar_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
 ) {
-  _ = window
-    .native()
-    .set_title_bar_visibility(!effect_config.hide_title_bar.enabled);
+  let is_single_window = if let Some(workspace) = window.workspace() {
+    workspace.tiling_children().nth(1).is_none()
+  } else {
+    false
+  };
+
+  _ = window.native().set_title_bar_visibility(
+    !effect_config
+      .hide_title_bar
+      .get_smart(is_single_window)
+      .enabled,
+  );
 }
 
 fn apply_corner_effect(

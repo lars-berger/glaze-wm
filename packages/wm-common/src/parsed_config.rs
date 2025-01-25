@@ -238,7 +238,7 @@ pub struct WindowEffectConfig {
   pub border: SmartBorderEffectConfig,
 
   /// Config for optionally hiding the title bar.
-  pub hide_title_bar: HideTitleBarEffectConfig,
+  pub hide_title_bar: SmartHideTitleBarEffectConfig,
 
   /// Config for optionally changing the corner style.
   pub corner_style: SmartCornerEffectConfig,
@@ -294,6 +294,35 @@ impl Default for BorderEffectConfig {
         b: 255,
         a: 255,
       },
+    }
+  }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct SmartHideTitleBarEffectConfig {
+  /// Default titlebar config
+  pub normal: HideTitleBarEffectConfig,
+
+  /// Overrides for if there is only one tiling window in a workspace.
+  pub smart: Option<HideTitleBarEffectConfig>,
+}
+
+impl SmartHideTitleBarEffectConfig {
+  #[must_use]
+  /// Gets the titlebar config based on if the window is the only
+  /// tiling child
+  ///
+  /// # Arguments
+  /// * `single_window`: Whether the window is the only tiling child
+  pub fn get_smart(
+    &self,
+    single_window: bool,
+  ) -> &HideTitleBarEffectConfig {
+    if let (Some(smart), true) = (self.smart.as_ref(), single_window) {
+      smart
+    } else {
+      &self.normal
     }
   }
 }
