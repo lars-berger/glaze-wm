@@ -247,16 +247,14 @@ pub struct WindowEffectConfig {
   pub transparency: TransparencyEffectConfig,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct SmartBorderEffectConfig {
-  /// Whether to enable the effect.
-  pub enabled: bool,
+  #[serde(flatten)]
+  /// Default border effects
+  pub normal: BorderEffectConfig,
 
-  /// Color of the window border.
-  pub color: Color,
-
-  // Border Effects if there is only one window
+  /// Border Effects if there is only one window
   pub smart: Option<BorderEffectConfig>,
 }
 
@@ -267,29 +265,11 @@ impl SmartBorderEffectConfig {
   ///
   /// # Arguments
   /// * `single_window`: Whether the window is the only tiling child
-  pub fn get_smart(&self, single_window: bool) -> BorderEffectConfig {
+  pub fn get_smart(&self, single_window: bool) -> &BorderEffectConfig {
     if let (Some(smart), true) = (self.smart.as_ref(), single_window) {
-      smart.clone()
+      smart
     } else {
-      BorderEffectConfig {
-        enabled: self.enabled,
-        color: self.color.clone(),
-      }
-    }
-  }
-}
-
-impl Default for SmartBorderEffectConfig {
-  fn default() -> Self {
-    SmartBorderEffectConfig {
-      enabled: false,
-      color: Color {
-        r: 140,
-        g: 190,
-        b: 255,
-        a: 255,
-      },
-      smart: None,
+      &self.normal
     }
   }
 }
@@ -328,13 +308,12 @@ pub struct HideTitleBarEffectConfig {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct SmartCornerEffectConfig {
-  /// Whether to enable the effect.
-  pub enabled: bool,
+  #[serde(flatten)]
+  /// Default corner effects
+  pub normal: CornerEffectConfig,
 
-  /// Style of the window corners.
-  pub style: CornerStyle,
-
-  // Corner Effects if there is only one window in a workspace
+  /// Corner Effect overrides if there is only one tiling window in a
+  /// workspace
   pub smart: Option<CornerEffectConfig>,
 }
 
@@ -345,14 +324,11 @@ impl SmartCornerEffectConfig {
   ///
   /// # Arguments
   /// * `single_window`: Whether the window is the only tiling child
-  pub fn get_smart(&self, single_window: bool) -> CornerEffectConfig {
+  pub fn get_smart(&self, single_window: bool) -> &CornerEffectConfig {
     if let (Some(smart), true) = (self.smart.as_ref(), single_window) {
-      smart.clone()
+      smart
     } else {
-      CornerEffectConfig {
-        enabled: self.enabled,
-        style: self.style.clone(),
-      }
+      &self.normal
     }
   }
 }
