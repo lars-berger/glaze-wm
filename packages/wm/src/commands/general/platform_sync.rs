@@ -314,6 +314,24 @@ fn redraw_containers(
         warn!("Failed to set taskbar visibility: {}", err);
       }
     }
+
+    // If moving to/from a single tiling window, re-apply
+    // window effects.
+    let tiling_count = workspace.tiling_children().take(3).count();
+    if (1..=2).contains(&tiling_count) {
+      let has_focus = window.has_focus(None);
+      apply_window_effects(window, has_focus, config);
+
+      // Include corner effects as they are nnot re-applied by
+      // `apply_window_effects`.
+      let effect_config = if has_focus {
+        &config.value.window_effects.focused_window
+      } else {
+        &config.value.window_effects.other_windows
+      };
+
+      apply_corner_effect(window, effect_config);
+    }
   }
 
   Ok(())
