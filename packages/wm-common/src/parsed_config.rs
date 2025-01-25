@@ -262,16 +262,14 @@ pub struct SmartBorderEffectConfig {
 
 impl SmartBorderEffectConfig {
   #[must_use]
-  #[allow(clippy::missing_panics_doc)]
   /// Gets the border effect config based on if the window is the only
   /// tiling child
   ///
   /// # Arguments
   /// * `single_window`: Whether the window is the only tiling child
   pub fn get_smart(&self, single_window: bool) -> BorderEffectConfig {
-    if single_window && self.smart.is_some() {
-      // Saftey: Just called is_some()
-      self.smart.as_ref().unwrap().clone()
+    if let (Some(smart), true) = (self.smart.as_ref(), single_window) {
+      smart.clone()
     } else {
       BorderEffectConfig {
         enabled: self.enabled,
@@ -342,16 +340,14 @@ pub struct SmartCornerEffectConfig {
 
 impl SmartCornerEffectConfig {
   #[must_use]
-  #[allow(clippy::missing_panics_doc)]
   /// Gets the corners effect config based on if the window is the only
   /// tiling child
   ///
   /// # Arguments
   /// * `single_window`: Whether the window is the only tiling child
   pub fn get_smart(&self, single_window: bool) -> CornerEffectConfig {
-    if single_window && self.smart.is_some() {
-      // Saftey: Just called is_some()
-      self.smart.as_ref().unwrap().clone()
+    if let (Some(smart), true) = (self.smart.as_ref(), single_window) {
+      smart.clone()
     } else {
       CornerEffectConfig {
         enabled: self.enabled,
