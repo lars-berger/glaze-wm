@@ -1,7 +1,7 @@
 use anyhow::Context;
 use tracing::info;
 use wm_common::{
-  try_warn, LengthValue, RectDelta, WindowRuleEvent, WindowState, WmEvent,
+  try_warn, RectDelta, WindowRuleEvent, WindowState, WmEvent,
 };
 use wm_platform::NativeWindow;
 
@@ -132,12 +132,7 @@ fn create_window(
 
   // Window has no border delta unless it's later changed via the
   // `adjust_borders` command.
-  let border_delta = RectDelta::new(
-    LengthValue::from_px(0),
-    LengthValue::from_px(0),
-    LengthValue::from_px(0),
-    LengthValue::from_px(0),
-  );
+  let border_delta = RectDelta::zero();
 
   let window_container: WindowContainer = match window_state {
     WindowState::Tiling => TilingWindow::new(
@@ -196,7 +191,14 @@ fn window_state_to_create(
     return Ok(WindowState::Minimized);
   }
 
-  let monitor_rect = if config.has_outer_gaps() {
+  let is_single_window =
+    if let Some(workspace) = nearest_monitor.displayed_workspace() {
+      workspace.tiling_children().nth(1).is_none()
+    } else {
+      false
+    };
+
+  let monitor_rect = if config.has_outer_gaps(is_single_window) {
     nearest_monitor.native().working_rect()?.clone()
   } else {
     nearest_monitor.to_rect()?

@@ -314,6 +314,24 @@ fn redraw_containers(
         warn!("Failed to set taskbar visibility: {}", err);
       }
     }
+
+    // If moving to/from a single tiling window, re-apply
+    // window effects.
+    let tiling_count = workspace.tiling_children().take(3).count();
+    if (1..=2).contains(&tiling_count) {
+      let has_focus = window.has_focus(None);
+      apply_window_effects(window, has_focus, config);
+
+      // Include corner effects as they are nnot re-applied by
+      // `apply_window_effects`.
+      let effect_config = if has_focus {
+        &config.value.window_effects.focused_window
+      } else {
+        &config.value.window_effects.other_windows
+      };
+
+      apply_corner_effect(window, effect_config);
+    }
   }
 
   Ok(())
@@ -359,6 +377,11 @@ fn apply_window_effects(
   config: &UserConfig,
 ) {
   let window_effects = &config.value.window_effects;
+  let is_single_window = if let Some(workspace) = window.workspace() {
+    workspace.tiling_children().nth(1).is_none()
+  } else {
+    false
+  };
 
   let effect_config = if is_focused {
     &window_effects.focused_window
@@ -367,26 +390,58 @@ fn apply_window_effects(
   };
 
   // Skip if both focused + non-focused window effects are disabled.
-  if window_effects.focused_window.border.enabled
-    || window_effects.other_windows.border.enabled
+  if window_effects
+    .focused_window
+    .border
+    .get_smart(is_single_window)
+    .enabled
+    || window_effects
+      .other_windows
+      .border
+      .get_smart(is_single_window)
+      .enabled
   {
-    apply_border_effect(window, effect_config);
+    apply_border_effect(window, effect_config, is_single_window);
   };
 
-  if window_effects.focused_window.hide_title_bar.enabled
-    || window_effects.other_windows.hide_title_bar.enabled
+  if window_effects
+    .focused_window
+    .hide_title_bar
+    .get_smart(is_single_window)
+    .enabled
+    || window_effects
+      .other_windows
+      .hide_title_bar
+      .get_smart(is_single_window)
+      .enabled
   {
     apply_hide_title_bar_effect(window, effect_config);
   }
 
-  if window_effects.focused_window.corner_style.enabled
-    || window_effects.other_windows.corner_style.enabled
+  if window_effects
+    .focused_window
+    .corner_style
+    .get_smart(is_single_window)
+    .enabled
+    || window_effects
+      .other_windows
+      .corner_style
+      .get_smart(is_single_window)
+      .enabled
   {
     apply_corner_effect(window, effect_config);
   }
 
-  if window_effects.focused_window.transparency.enabled
-    || window_effects.other_windows.transparency.enabled
+  if window_effects
+    .focused_window
+    .transparency
+    .get_smart(is_single_window)
+    .enabled
+    || window_effects
+      .other_windows
+      .transparency
+      .get_smart(is_single_window)
+      .enabled
   {
     apply_transparency_effect(window, effect_config);
   }
@@ -395,9 +450,11 @@ fn apply_window_effects(
 fn apply_border_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
+  is_single_window: bool,
 ) {
-  let border_color = if effect_config.border.enabled {
-    Some(&effect_config.border.color)
+  let border = effect_config.border.get_smart(is_single_window);
+  let border_color = if border.enabled {
+    Some(&border.color)
   } else {
     None
   };
@@ -419,17 +476,35 @@ fn apply_hide_title_bar_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
 ) {
-  _ = window
-    .native()
-    .set_title_bar_visibility(!effect_config.hide_title_bar.enabled);
+  let is_single_window = if let Some(workspace) = window.workspace() {
+    workspace.tiling_children().nth(1).is_none()
+  } else {
+    false
+  };
+
+  _ = window.native().set_title_bar_visibility(
+    !effect_config
+      .hide_title_bar
+      .get_smart(is_single_window)
+      .enabled,
+  );
 }
 
 fn apply_corner_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
 ) {
-  let corner_style = if effect_config.corner_style.enabled {
-    &effect_config.corner_style.style
+  let is_single_window = if let Some(workspace) = window.workspace() {
+    workspace.tiling_children().nth(1).is_none()
+  } else {
+    false
+  };
+
+  let smart_corner_style =
+    effect_config.corner_style.get_smart(is_single_window);
+
+  let corner_style = if smart_corner_style.enabled {
+    &smart_corner_style.style
   } else {
     &CornerStyle::Default
   };
@@ -441,8 +516,16 @@ fn apply_transparency_effect(
   window: &WindowContainer,
   effect_config: &WindowEffectConfig,
 ) {
-  let transparency = if effect_config.transparency.enabled {
-    &effect_config.transparency.opacity
+  let is_single_window = if let Some(workspace) = window.workspace() {
+    workspace.tiling_children().nth(1).is_none()
+  } else {
+    false
+  };
+
+  let effect = effect_config.transparency.get_smart(is_single_window);
+
+  let transparency = if effect.enabled {
+    &effect.opacity
   } else {
     // Reset the transparency to default.
     &OpacityValue::from_alpha(u8::MAX)

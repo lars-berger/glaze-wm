@@ -43,6 +43,25 @@ pub struct GapsConfig {
 
   /// Gap between windows and the screen edge.
   pub outer_gap: RectDelta,
+
+  /// Gap between window and the screen edge if there is only one window
+  /// in the workspace
+  pub smart_outer_gap: Option<RectDelta>,
+}
+
+impl GapsConfig {
+  #[must_use]
+  #[allow(clippy::missing_panics_doc)]
+  pub fn get_outer_gap(&self, single_window: bool) -> &RectDelta {
+    // TODO: Replace this with single_window && let Some() when it becomes
+    // stable and remove the clippy allow
+    if single_window && self.smart_outer_gap.is_some() {
+      // Saftey: Just called is_some()
+      self.smart_outer_gap.as_ref().unwrap()
+    } else {
+      &self.outer_gap
+    }
+  }
 }
 
 impl Default for GapsConfig {
@@ -50,12 +69,8 @@ impl Default for GapsConfig {
     GapsConfig {
       scale_with_dpi: true,
       inner_gap: LengthValue::from_px(0),
-      outer_gap: RectDelta::new(
-        LengthValue::from_px(0),
-        LengthValue::from_px(0),
-        LengthValue::from_px(0),
-        LengthValue::from_px(0),
-      ),
+      outer_gap: RectDelta::zero(),
+      smart_outer_gap: None,
     }
   }
 }
@@ -220,20 +235,47 @@ pub struct WindowEffectsConfig {
 #[serde(default, rename_all(serialize = "camelCase"))]
 pub struct WindowEffectConfig {
   /// Config for optionally applying a colored border.
-  pub border: BorderEffectConfig,
+  pub border: SmartBorderEffectConfig,
 
   /// Config for optionally hiding the title bar.
-  pub hide_title_bar: HideTitleBarEffectConfig,
+  pub hide_title_bar: SmartHideTitleBarEffectConfig,
 
   /// Config for optionally changing the corner style.
-  pub corner_style: CornerEffectConfig,
+  pub corner_style: SmartCornerEffectConfig,
 
   /// Config for optionally applying transparency.
-  pub transparency: TransparencyEffectConfig,
+  pub transparency: SmartTransparencyEffectConfig,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct SmartBorderEffectConfig {
+  #[serde(flatten)]
+  /// Default border effects
+  pub normal: BorderEffectConfig,
+
+  /// Border Effects if there is only one window
+  pub smart: Option<BorderEffectConfig>,
+}
+
+impl SmartBorderEffectConfig {
+  #[must_use]
+  /// Gets the border effect config based on if the window is the only
+  /// tiling child
+  ///
+  /// # Arguments
+  /// * `single_window`: Whether the window is the only tiling child
+  pub fn get_smart(&self, single_window: bool) -> &BorderEffectConfig {
+    if let (Some(smart), true) = (self.smart.as_ref(), single_window) {
+      smart
+    } else {
+      &self.normal
+    }
+  }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(default, rename_all(serialize = "camelCase"))]
+#[serde(rename_all(serialize = "camelCase"))]
 pub struct BorderEffectConfig {
   /// Whether to enable the effect.
   pub enabled: bool,
@@ -258,9 +300,66 @@ impl Default for BorderEffectConfig {
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default, rename_all(serialize = "camelCase"))]
+pub struct SmartHideTitleBarEffectConfig {
+  /// Default titlebar config
+  pub normal: HideTitleBarEffectConfig,
+
+  /// Overrides for if there is only one tiling window in a workspace.
+  pub smart: Option<HideTitleBarEffectConfig>,
+}
+
+impl SmartHideTitleBarEffectConfig {
+  #[must_use]
+  /// Gets the titlebar config based on if the window is the only
+  /// tiling child
+  ///
+  /// # Arguments
+  /// * `single_window`: Whether the window is the only tiling child
+  pub fn get_smart(
+    &self,
+    single_window: bool,
+  ) -> &HideTitleBarEffectConfig {
+    if let (Some(smart), true) = (self.smart.as_ref(), single_window) {
+      smart
+    } else {
+      &self.normal
+    }
+  }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
 pub struct HideTitleBarEffectConfig {
   /// Whether to enable the effect.
   pub enabled: bool,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct SmartCornerEffectConfig {
+  #[serde(flatten)]
+  /// Default corner effects
+  pub normal: CornerEffectConfig,
+
+  /// Corner Effect overrides if there is only one tiling window in a
+  /// workspace
+  pub smart: Option<CornerEffectConfig>,
+}
+
+impl SmartCornerEffectConfig {
+  #[must_use]
+  /// Gets the corners effect config based on if the window is the only
+  /// tiling child
+  ///
+  /// # Arguments
+  /// * `single_window`: Whether the window is the only tiling child
+  pub fn get_smart(&self, single_window: bool) -> &CornerEffectConfig {
+    if let (Some(smart), true) = (self.smart.as_ref(), single_window) {
+      smart
+    } else {
+      &self.normal
+    }
+  }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -281,6 +380,36 @@ pub enum CornerStyle {
   Square,
   Rounded,
   SmallRounded,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(default, rename_all(serialize = "camelCase"))]
+pub struct SmartTransparencyEffectConfig {
+  #[serde(flatten)]
+  /// Default transparency effects
+  pub normal: TransparencyEffectConfig,
+
+  /// Overrides for if there is only one tiling window in a workspace.
+  pub smart: Option<TransparencyEffectConfig>,
+}
+
+impl SmartTransparencyEffectConfig {
+  #[must_use]
+  /// Gets the transparency effect config based on if the window is the
+  /// only tiling child
+  ///
+  /// # Arguments
+  /// * `single_window`: Whether the window is the only tiling child
+  pub fn get_smart(
+    &self,
+    single_window: bool,
+  ) -> &TransparencyEffectConfig {
+    if let (Some(smart), true) = (self.smart.as_ref(), single_window) {
+      smart
+    } else {
+      &self.normal
+    }
+  }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
